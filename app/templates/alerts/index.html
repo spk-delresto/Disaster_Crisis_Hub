@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Emergency contacts — Crisis Hub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Emergency contacts</h2>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; align-items:start;">
+
+  <!-- Add contact form -->
+  <div class="card">
+    <h3 class="card-title">Add a contact</h3>
+    <form method="POST" action="{{ url_for('alerts.add_contact') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label>Full name *</label>
+        <input type="text" name="name" required placeholder="Jane Doe">
+      </div>
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" name="email" placeholder="jane@example.com">
+      </div>
+      <div class="form-group">
+        <label>Phone (with country code)</label>
+        <input type="tel" name="phone" placeholder="+977 98XXXXXXXX">
+      </div>
+      <div class="form-group">
+        <label>Relation</label>
+        <input type="text" name="relation" placeholder="e.g. Family, Colleague">
+      </div>
+      <div class="form-row" style="margin-bottom:1rem;">
+        <label class="checkbox-label">
+          <input type="checkbox" name="notify_email" checked> Email alerts
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" name="notify_sms"> SMS alerts
+        </label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Add contact</button>
+    </form>
+  </div>
+
+  <!-- Contact list -->
+  <div class="card">
+    <h3 class="card-title">Saved contacts ({{ contacts|length }})</h3>
+    {% if contacts %}
+      {% for c in contacts %}
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:.75rem 0; border-bottom:1px solid var(--border);">
+        <div>
+          <div style="font-weight:600;">{{ c.name }}</div>
+          <div style="font-size:.8rem; color:var(--muted);">
+            {{ c.relation or '' }}
+            {% if c.email %} · {{ c.email }}{% endif %}
+            {% if c.phone %} · {{ c.phone }}{% endif %}
+          </div>
+          <div style="display:flex; gap:.4rem; margin-top:.3rem;">
+            {% if c.notify_email %}<span class="badge badge-active">email</span>{% endif %}
+            {% if c.notify_sms %}<span class="badge badge-monitoring">sms</span>{% endif %}
+          </div>
+        </div>
+        <form method="POST" action="{{ url_for('alerts.delete_contact', contact_id=c.id) }}"
+              onsubmit="return confirm('Remove {{ c.name }}?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-sm">Remove</button>
+        </form>
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-muted" style="margin-top:.5rem;">No contacts saved yet. Add one to receive alerts.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
