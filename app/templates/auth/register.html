@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Register — Crisis Hub{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">🌐</div>
+      <h1>Create account</h1>
+      <p>Join the Disaster Crisis Hub</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('auth.register') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required minlength="3"
+               autocomplete="username" placeholder="johndoe">
+      </div>
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" required
+               autocomplete="email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label for="password">Password <small style="color:var(--muted)">(min 8 chars)</small></label>
+        <input type="password" id="password" name="password" required minlength="8"
+               autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label for="confirm_password">Confirm password</label>
+        <input type="password" id="confirm_password" name="confirm_password" required
+               autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Create account</button>
+    </form>
+    <p class="auth-footer">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+  </div>
+</div>
+{% endblock %}
