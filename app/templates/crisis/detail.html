@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block title %}{{ disaster.title }} — Crisis Hub{% endblock %}
+
+{% block content %}
+<div class="detail-header">
+  <div>
+    <h2>{{ disaster.title }}</h2>
+    <div style="display:flex; gap:.5rem; margin-top:.5rem; flex-wrap:wrap;">
+      <span class="badge badge-{{ disaster.severity }}">{{ disaster.severity }}</span>
+      <span class="badge badge-{{ disaster.status }}">{{ disaster.status }}</span>
+      <span class="badge">{{ disaster.disaster_type }}</span>
+    </div>
+  </div>
+  <div class="detail-actions">
+    <a href="{{ url_for('crisis.edit', disaster_id=disaster.id) }}" class="btn btn-secondary">Edit</a>
+    <form action="{{ url_for('alerts.send_alert', disaster_id=disaster.id) }}" method="POST" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">🔔 Send alert</button>
+    </form>
+    {% if current_user.role in ['admin','responder'] %}
+    <form action="{{ url_for('crisis.delete', disaster_id=disaster.id) }}" method="POST"
+          onsubmit="return confirm('Delete this crisis report?')" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-secondary">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Meta grid -->
+<div class="meta-grid">
+  <div class="meta-item">
+    <div class="meta-label">Location</div>
+    <div class="meta-value">{{ disaster.location_name or 'Unknown' }}</div>
+  </div>
+  <div class="meta-item">
+    <div class="meta-label">Affected people</div>
+    <div class="meta-value">{{ "{:,}".format(disaster.affected_people or 0) }}</div>
+  </div>
+  <div class="meta-item">
+    <div class="meta-label">Reported by</div>
+    <div class="meta-value">{{ disaster.creator.username }}</div>
+  </div>
+  <div class="meta-item">
+    <div class="meta-label">Reported on</div>
+    <div class="meta-value">{{ disaster.created_at.strftime('%d %b %Y, %H:%M') }}</div>
+  </div>
+  {% if disaster.severity_score %}
+  <div class="meta-item">
+    <div class="meta-label">ML severity score</div>
+    <div class="meta-value">{{ "%.0f"|format(disaster.severity_score * 100) }}%</div>
+    <div class="severity-bar-wrap">
+      <div class="severity-bar" style="
+        width:{{ "%.0f"|format(disaster.severity_score * 100) }}%;
+        background:{% if disaster.severity_score >= .75 %}#ef4444{% elif disaster.severity_score >= .5 %}#f97316{% elif disaster.severity_score >= .25 %}#f59e0b{% else %}#22c55e{% endif %};">
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Weather widget -->
+{% if weather %}
+<div class="card" style="margin-bottom:1.5rem;">
+  <h3 class="card-title">Current weather at location</h3>
+  <div style="display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
+    <img src="https://openweathermap.org/img/wn/{{ weather.icon }}@2x.png" alt="{{ weather.description }}" style="width:60px;height:60px;">
+    <div>
+      <div style="font-size:1.8rem; font-weight:700;">{{ weather.temp }}°C</div>
+      <div style="color:var(--muted);">{{ weather.description }}</div>
+    </div>
+    <div style="display:flex; gap:2rem; color:var(--muted); font-size:.875rem;">
+      <span>💨 Wind: {{ weather.wind_speed }} m/s</span>
+      <span>💧 Humidity: {{ weather.humidity }}%</span>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Description -->
+{% if disaster.description %}
+<div class="card">
+  <h3 class="card-title">Description</h3>
+  <p style="color:var(--muted); line-height:1.7;">{{ disaster.description }}</p>
+</div>
+{% endif %}
+
+<!-- Embedded mini-map -->
+<div class="card">
+  <h3 class="card-title">Map pin</h3>
+  <div id="detail-map" style="height:300px; border-radius:8px;"></div>
+</div>
+
+<!-- Alert history -->
+{% if disaster.alerts %}
+<div class="card">
+  <h3 class="card-title">Alert history</h3>
+  <table class="table">
+    <thead><tr><th>Sent to</th><th>Method</th><th>Status</th><th>Time</th></tr></thead>
+    <tbody>
+    {% for a in disaster.alerts %}
+    <tr>
+      <td>{{ a.sent_to }}</td>
+      <td>{{ a.method }}</td>
+      <td><span class="badge badge-{{ 'success' if a.status == 'sent' else 'danger' }}">{{ a.status }}</span></td>
+      <td>{{ a.sent_at.strftime('%d %b %Y, %H:%M') }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const lat = {{ disaster.latitude }};
+  const lon = {{ disaster.longitude }};
+  const map = L.map("detail-map").setView([lat, lon], 8);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors"
+  }).addTo(map);
+  L.marker([lat, lon]).addTo(map).bindPopup("{{ disaster.title }}").openPopup();
+});
+</script>
+{% endblock %}
