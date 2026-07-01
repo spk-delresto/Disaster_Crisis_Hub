@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Crisis reports — Crisis Hub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Crisis reports</h2>
+  <a href="{{ url_for('crisis.create') }}" class="btn btn-danger">+ Report crisis</a>
+</div>
+
+<!-- Filters -->
+<form method="GET" style="display:flex; gap:1rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+  <select name="status" onchange="this.form.submit()" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.45rem .8rem;font-size:.875rem;">
+    <option value="">All statuses</option>
+    <option value="active" {% if status_filter=='active' %}selected{% endif %}>Active</option>
+    <option value="monitoring" {% if status_filter=='monitoring' %}selected{% endif %}>Monitoring</option>
+    <option value="resolved" {% if status_filter=='resolved' %}selected{% endif %}>Resolved</option>
+  </select>
+  <select name="type" onchange="this.form.submit()" style="background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.45rem .8rem;font-size:.875rem;">
+    <option value="">All types</option>
+    {% for t in ['flood','earthquake','fire','hurricane','landslide','tsunami','other'] %}
+    <option value="{{ t }}" {% if type_filter==t %}selected{% endif %}>{{ t|capitalize }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Title</th><th>Type</th><th>Severity</th><th>Location</th>
+        <th>Affected</th><th>Status</th><th>Reported</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for d in disasters %}
+    <tr style="cursor:pointer;" onclick="window.location='{{ url_for('crisis.detail', disaster_id=d.id) }}'">
+      <td><strong>{{ d.title }}</strong></td>
+      <td>{{ d.disaster_type }}</td>
+      <td><span class="badge badge-{{ d.severity }}">{{ d.severity }}</span></td>
+      <td>{{ d.location_name or '—' }}</td>
+      <td>{{ "{:,}".format(d.affected_people or 0) }}</td>
+      <td><span class="badge badge-{{ d.status }}">{{ d.status }}</span></td>
+      <td>{{ d.created_at.strftime('%d %b %Y') }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="text-muted" style="text-align:center;padding:2rem;">No crisis reports found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
