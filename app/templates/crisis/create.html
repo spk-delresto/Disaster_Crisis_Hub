@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if editing else 'Report' }} crisis — Crisis Hub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>{{ 'Edit crisis report' if editing else 'Report a new crisis' }}</h2>
+  <a href="{{ url_for('crisis.list_crises') }}" class="btn btn-secondary">← Back</a>
+</div>
+
+<form method="POST" action="{{ url_for('crisis.edit', disaster_id=disaster.id) if editing else url_for('crisis.create') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="card">
+    <h3 class="card-title">Basic information</h3>
+    <div class="form-group">
+      <label for="title">Crisis title *</label>
+      <input type="text" id="title" name="title" required
+             value="{{ disaster.title if editing else '' }}"
+             placeholder="e.g. Flash flood in Kathmandu valley">
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="disaster_type">Disaster type *</label>
+        <select id="disaster_type" name="disaster_type" required>
+          {% for t in ['flood','earthquake','fire','hurricane','landslide','tsunami','other'] %}
+          <option value="{{ t }}" {% if editing and disaster.disaster_type==t %}selected{% endif %}>{{ t|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="affected_people">Affected people</label>
+        <input type="number" id="affected_people" name="affected_people" min="0"
+               value="{{ disaster.affected_people if editing else 0 }}" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="4"
+                placeholder="Describe the situation, current conditions, and urgent needs…">{{ disaster.description if editing else '' }}</textarea>
+    </div>
+    {% if editing %}
+    <div class="form-group">
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        {% for s in ['active','monitoring','resolved'] %}
+        <option value="{{ s }}" {% if disaster.status==s %}selected{% endif %}>{{ s|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3 class="card-title">Location — click the map to pin</h3>
+    <div class="form-group">
+      <label for="location_name">Location name</label>
+      <input type="text" id="location_name" name="location_name"
+             value="{{ disaster.location_name if editing else '' }}"
+             placeholder="e.g. Kathmandu, Nepal">
+    </div>
+    <div id="create-map" style="height:360px; border-radius:8px; margin-bottom:1rem;"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="latitude">Latitude *</label>
+        <input type="number" id="latitude" name="latitude" step="any" required
+               value="{{ disaster.latitude if editing else '' }}" placeholder="27.7172">
+      </div>
+      <div class="form-group">
+        <label for="longitude">Longitude *</label>
+        <input type="number" id="longitude" name="longitude" step="any" required
+               value="{{ disaster.longitude if editing else '' }}" placeholder="85.3240">
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:1rem; justify-content:flex-end;">
+    <a href="{{ url_for('crisis.list_crises') }}" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-danger">
+      {{ 'Save changes' if editing else 'Submit report' }}
+    </button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const latInput = document.getElementById("latitude");
+  const lonInput = document.getElementById("longitude");
+  const initLat = parseFloat(latInput.value) || 27.7172;
+  const initLon = parseFloat(lonInput.value) || 85.3240;
+
+  const map = L.map("create-map").setView([initLat, initLon], 5);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+  }).addTo(map);
+
+  let marker = L.marker([initLat, initLon]).addTo(map);
+
+  map.on("click", (e) => {
+    const { lat, lng } = e.latlng;
+    latInput.value = lat.toFixed(6);
+    lonInput.value = lng.toFixed(6);
+    marker.setLatLng(e.latlng);
+  });
+});
+</script>
+{% endblock %}
