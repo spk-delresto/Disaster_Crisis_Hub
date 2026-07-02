@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Crisis Hub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>Mission overview</h2>
+  <a href="{{ url_for('crisis.create') }}" class="btn btn-danger">+ Report crisis</a>
+</div>
+
+<!-- Stat cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-label">Total crises</span>
+    <span class="stat-value">{{ total }}</span>
+  </div>
+  <div class="stat-card stat-active">
+    <span class="stat-label">Active</span>
+    <span class="stat-value">{{ active }}</span>
+  </div>
+  <div class="stat-card stat-critical">
+    <span class="stat-label">Critical</span>
+    <span class="stat-value">{{ critical }}</span>
+  </div>
+  <div class="stat-card stat-resolved">
+    <span class="stat-label">Resolved</span>
+    <span class="stat-value">{{ resolved }}</span>
+  </div>
+</div>
+
+<!-- Live map -->
+<section class="card">
+  <h3 class="card-title">Live disaster map</h3>
+  <div id="crisis-map" style="height:420px; border-radius:8px;"></div>
+</section>
+
+<!-- Charts row -->
+<div class="chart-grid">
+  <div class="card">
+    <h3 class="card-title">Events by type</h3>
+    <canvas id="typeChart" height="220"></canvas>
+  </div>
+  <div class="card">
+    <h3 class="card-title">Events by severity</h3>
+    <canvas id="severityChart" height="220"></canvas>
+  </div>
+  <div class="card chart-wide">
+    <h3 class="card-title">7-day activity</h3>
+    <canvas id="timelineChart" height="120"></canvas>
+  </div>
+</div>
+
+<!-- Recent events -->
+<section class="card">
+  <h3 class="card-title">Recent reports</h3>
+  <table class="table">
+    <thead>
+      <tr><th>Title</th><th>Type</th><th>Severity</th><th>Status</th><th>Reported</th></tr>
+    </thead>
+    <tbody>
+      {% for d in recent %}
+      <tr>
+        <td><a href="{{ url_for('crisis.detail', disaster_id=d.id) }}">{{ d.title }}</a></td>
+        <td>{{ d.disaster_type }}</td>
+        <td><span class="badge badge-{{ d.severity }}">{{ d.severity }}</span></td>
+        <td><span class="badge badge-{{ d.status }}">{{ d.status }}</span></td>
+        <td>{{ d.created_at.strftime('%d %b %Y') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted">No crisis reports yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+  initMap("{{ url_for('crisis.geojson') }}");
+  loadCharts("{{ url_for('dashboard.chart_data') }}");
+</script>
+{% endblock %}
