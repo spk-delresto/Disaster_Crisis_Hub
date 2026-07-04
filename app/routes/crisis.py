@@ -102,3 +102,73 @@ def create():
 
     return render_template("crisis/create.html")
 
+# ── View single disaster ──────────────────────────────────────────────────────
+
+@crisis_bp.route("/<int:disaster_id>")
+@login_required
+def detail(disaster_id):
+    disaster = Disaster.query.get_or_404(disaster_id)
+
+    # Fetch current weather from OpenWeatherMap
+    weather = None
+    api_key = current_app.config.get("OPENWEATHER_API_KEY")
+    if api_key:
+        try:
+            resp = http.get(
+                "https://api.openweathermap.org/data/2.5/weather",
+                params={"lat": float(disaster.latitude), "lon": float(disaster.longitude),
+                        "appid": api_key, "units": "metric"},
+                timeout=5,
+            )
+            if resp.ok:
+                data = resp.json()
+                weather = {
+                    "temp": data["main"]["temp"],
+                    "description": data["weather"][0]["description"].capitalize(),
+                    "wind_speed": data["wind"]["speed"],
+                    "humidity": data["main"]["humidity"],
+                    "icon": data["weather"][0]["icon"],
+                }
+        except Exception:
+            pass  # Weather is non-critical
+
+    return render_template("crisis/detail.html", disaster=disaster, weather=weather)
+
+
+# ── Edit disaster ─────────────────────────────────────────────────────────────
+
+@crisis_bp.route("/<int:disaster_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit(disaster_id):
+    disaster = Disaster.query.get_or_404(disaster_id)
+
+    if request.method == "POST":
+        disaster.title          = request.form.get("title", disaster.title).strip()
+        disaster.description    = request.form.get("description", disaster.description)
+        disaster.disaster_type  = request.form.get("disaster_type", disaster.disaster_type)
+        disaster.severity       = request.form.get("severity", disaster.severity)
+        disaster.status         = request.form.get("status", disaster.status)
+        disaster.affected_people = int(request.form.get("affected_people", 0) or 0)
+        disaster.location_name  = request.form.get("location_name", disaster.location_name)
+        db.session.commit()
+        _audit("EDIT_CRISIS", f"Edited disaster #{disaster_id}")
+        flash("Crisis report updated.", "success")
+        return redirect(url_for("crisis.detail", disaster_id=disaster_id))
+
+    return render_template("crisis/create.html", disaster=disaster, editing=True)
+
+
+# ── Delete disaster ───────────────────────────────────────────────────────────
+
+@crisis_bp.route("/<int:disaster_id>/delete", methods=["POST"])
+@login_required
+def delete(disaster_id):
+    if current_user.role not in ("admin", "responder"):
+        flash("Permission denied.", "danger")
+        return redirect(url_for("crisis.list_crises"))
+    disaster = Disaster.query.get_or_404(disaster_id)
+    db.session.delete(disaster)
+    db.session.commit()
+    _audit("DELETE_CRISIS", f"Deleted disaster #{disaster_id}")
+    flash("Crisis report deleted.", "info")
+    return redirect(url_for("crisis.list_crises"))
