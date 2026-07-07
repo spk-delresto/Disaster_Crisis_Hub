@@ -71,3 +71,45 @@ class Disaster(db.Model):
                 "created_at": self.created_at.isoformat(),
             },
         }
+
+# ── Emergency contact ─────────────────────────────────────────────────────────
+
+class EmergencyContact(db.Model):
+    __tablename__ = "emergency_contacts"
+
+    id           = db.Column(db.Integer, primary_key=True)
+    user_id      = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    name         = db.Column(db.String(100), nullable=False)
+    phone        = db.Column(db.String(20))
+    email        = db.Column(db.String(120))
+    relation     = db.Column(db.String(50))
+    notify_sms   = db.Column(db.Boolean, default=False)
+    notify_email = db.Column(db.Boolean, default=True)
+    created_at   = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ── Alert log ─────────────────────────────────────────────────────────────────
+
+class AlertLog(db.Model):
+    __tablename__ = "alerts_log"
+
+    id          = db.Column(db.Integer, primary_key=True)
+    disaster_id = db.Column(db.Integer, db.ForeignKey("disasters.id"), nullable=False)
+    sent_to     = db.Column(db.String(120), nullable=False)
+    method      = db.Column(db.Enum("email", "sms"), nullable=False)
+    status      = db.Column(db.Enum("sent", "failed", "pending"), default="pending")
+    sent_at     = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ── Audit log ─────────────────────────────────────────────────────────────────
+
+class AuditLog(db.Model):
+    __tablename__ = "audit_log"
+
+    id         = db.Column(db.Integer, primary_key=True)
+    user_id    = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    action     = db.Column(db.String(100), nullable=False)
+    detail     = db.Column(db.Text)
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(300))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
