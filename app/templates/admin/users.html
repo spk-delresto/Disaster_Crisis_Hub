@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Manage Users — Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>⚙️ User management</h2>
+  <a href="{{ url_for('admin.index') }}" class="btn btn-secondary">← Admin panel</a>
+</div>
+
+<!-- Search -->
+<form method="GET" style="margin-bottom:1.5rem; display:flex; gap:.75rem;">
+  <input type="text" name="search" value="{{ search }}" placeholder="Search by username or email…"
+         style="flex:1; background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:.55rem .9rem; font-size:.9rem;">
+  <button type="submit" class="btn btn-primary">Search</button>
+  {% if search %}<a href="{{ url_for('admin.users') }}" class="btn btn-secondary">Clear</a>{% endif %}
+</form>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table class="table">
+    <thead>
+      <tr><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Last login</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for user in users %}
+    <tr>
+      <td><strong>{{ user.username }}</strong>{% if user.id == current_user.id %} <span style="color:var(--muted);font-size:.75rem;">(you)</span>{% endif %}</td>
+      <td style="color:var(--muted); font-size:.875rem;">{{ user.email }}</td>
+      <td><span class="badge badge-{{ user.role }}">{{ user.role }}</span></td>
+      <td>
+        {% if user.is_active %}
+          <span class="badge badge-resolved">Active</span>
+        {% else %}
+          <span class="badge badge-critical">Suspended</span>
+        {% endif %}
+      </td>
+      <td style="font-size:.8rem; color:var(--muted);">{{ user.created_at.strftime('%d %b %Y') }}</td>
+      <td style="font-size:.8rem; color:var(--muted);">{{ user.last_login.strftime('%d %b %Y') if user.last_login else '—' }}</td>
+      <td>
+        <div style="display:flex; gap:.4rem; flex-wrap:wrap;">
+          <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn-sm">Edit</a>
+
+          {% if user.id != current_user.id %}
+          <form method="POST" action="{{ url_for('admin.toggle_user', user_id=user.id) }}"
+                onsubmit="return confirm('{{ 'Deactivate' if user.is_active else 'Activate' }} {{ user.username }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-sm" style="color:{{ '#f59e0b' if user.is_active else '#22c55e' }};">
+              {{ 'Suspend' if user.is_active else 'Activate' }}
+            </button>
+          </form>
+
+          <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+                onsubmit="return confirm('Permanently delete {{ user.username }}? This cannot be undone.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-sm" style="color:#ef4444;">Delete</button>
+          </form>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="text-muted" style="text-align:center; padding:2rem;">No users found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

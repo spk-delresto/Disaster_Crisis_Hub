@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel — Crisis Hub{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>⚙️ Admin Control Panel</h2>
+  <div style="display:flex; gap:.5rem;">
+    <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">Manage Users</a>
+    <a href="{{ url_for('admin.crises') }}" class="btn btn-secondary">Manage Crises</a>
+    <a href="{{ url_for('admin.audit') }}" class="btn btn-secondary">Audit Logs</a>
+  </div>
+</div>
+
+<!-- Stat cards -->
+<div class="stat-grid">
+  <div class="stat-card">
+    <span class="stat-label">Total users</span>
+    <span class="stat-value">{{ total_users }}</span>
+  </div>
+  <div class="stat-card stat-active">
+    <span class="stat-label">Active users</span>
+    <span class="stat-value">{{ active_users }}</span>
+  </div>
+  <div class="stat-card stat-critical">
+    <span class="stat-label">Total crises</span>
+    <span class="stat-value">{{ total_disasters }}</span>
+  </div>
+  <div class="stat-card stat-resolved">
+    <span class="stat-label">Alerts sent</span>
+    <span class="stat-value">{{ total_alerts }}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Logins (7 days)</span>
+    <span class="stat-value">{{ recent_logins }}</span>
+  </div>
+</div>
+
+<!-- Role breakdown + recent activity -->
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:1.5rem;">
+
+  <div class="card">
+    <h3 class="card-title">Users by role</h3>
+    {% for role, count in role_counts.items() %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:.6rem 0; border-bottom:1px solid var(--border);">
+      <span class="badge badge-{{ role }}">{{ role }}</span>
+      <strong>{{ count }}</strong>
+    </div>
+    {% endfor %}
+    <div style="margin-top:1rem;">
+      <a href="{{ url_for('admin.users') }}" class="btn btn-primary btn-full">Manage all users</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title">Recent activity log</h3>
+    <table class="table">
+      <thead>
+        <tr><th>Action</th><th>User</th><th>IP</th><th>Time</th></tr>
+      </thead>
+      <tbody>
+      {% for log in recent_logs %}
+      <tr>
+        <td>
+          <span class="badge {% if 'DELETE' in log.action or 'FAIL' in log.action %}badge-critical
+                {% elif 'LOGIN' in log.action %}badge-active
+                {% elif 'ADMIN' in log.action %}badge-high
+                {% else %}badge-monitoring{% endif %}">
+            {{ log.action }}
+          </span>
+        </td>
+        <td>{{ log.user.username if log.user else '—' }}</td>
+        <td style="font-size:.8rem; color:var(--muted);">{{ log.ip_address or '—' }}</td>
+        <td style="font-size:.8rem; color:var(--muted);">{{ log.created_at.strftime('%d %b, %H:%M') }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="text-muted">No activity yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <div style="margin-top:1rem;">
+      <a href="{{ url_for('admin.audit') }}" class="btn btn-secondary btn-full">View full audit log</a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

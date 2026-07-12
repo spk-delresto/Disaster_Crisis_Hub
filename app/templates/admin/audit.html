@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>⚙️ Security audit log</h2>
+  <a href="{{ url_for('admin.index') }}" class="btn btn-secondary">← Admin panel</a>
+</div>
+
+<!-- Filter -->
+<form method="GET" style="display:flex; gap:.75rem; margin-bottom:1.5rem; flex-wrap:wrap;">
+  <select name="action" onchange="this.form.submit()"
+          style="background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:.45rem .8rem; font-size:.875rem;">
+    <option value="">All actions</option>
+    {% for action in actions %}
+    <option value="{{ action }}" {% if action_filter == action %}selected{% endif %}>{{ action }}</option>
+    {% endfor %}
+  </select>
+  {% if action_filter %}
+  <a href="{{ url_for('admin.audit') }}" class="btn btn-secondary">Clear filter</a>
+  {% endif %}
+</form>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table class="table">
+    <thead>
+      <tr><th>Action</th><th>User</th><th>Detail</th><th>IP address</th><th>Time</th></tr>
+    </thead>
+    <tbody>
+    {% for log in logs.items %}
+    <tr>
+      <td>
+        <span class="badge
+          {% if 'DELETE' in log.action or 'FAIL' in log.action %}badge-critical
+          {% elif 'LOGIN' == log.action %}badge-active
+          {% elif 'LOGOUT' in log.action %}badge-monitoring
+          {% elif 'ADMIN' in log.action %}badge-high
+          {% else %}badge-medium{% endif %}">
+          {{ log.action }}
+        </span>
+      </td>
+      <td>{{ log.user.username if log.user else '<deleted>' }}</td>
+      <td style="font-size:.8rem; color:var(--muted); max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+        {{ log.detail or '—' }}
+      </td>
+      <td style="font-size:.8rem; color:var(--muted); font-family:monospace;">{{ log.ip_address or '—' }}</td>
+      <td style="font-size:.8rem; color:var(--muted); white-space:nowrap;">{{ log.created_at.strftime('%d %b %Y, %H:%M:%S') }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="text-muted" style="text-align:center; padding:2rem;">No log entries.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Pagination -->
+{% if logs.pages > 1 %}
+<div style="display:flex; gap:.5rem; justify-content:center; margin-top:1rem;">
+  {% if logs.has_prev %}
+  <a href="{{ url_for('admin.audit', page=logs.prev_num, action=action_filter) }}" class="btn btn-secondary">← Prev</a>
+  {% endif %}
+  <span style="padding:.5rem 1rem; color:var(--muted); font-size:.875rem;">
+    Page {{ logs.page }} of {{ logs.pages }}
+  </span>
+  {% if logs.has_next %}
+  <a href="{{ url_for('admin.audit', page=logs.next_num, action=action_filter) }}" class="btn btn-secondary">Next →</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

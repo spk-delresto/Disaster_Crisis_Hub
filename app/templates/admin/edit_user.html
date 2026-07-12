@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ user.username }} — Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>⚙️ Edit user: {{ user.username }}</h2>
+  <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">← Back to users</a>
+</div>
+
+<div style="max-width:540px;">
+  <div class="card">
+    <h3 class="card-title">Account details</h3>
+
+    <form method="POST" action="{{ url_for('admin.edit_user', user_id=user.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" value="{{ user.username }}" disabled
+               style="opacity:.5; cursor:not-allowed;">
+        <small style="color:var(--muted);">Username cannot be changed.</small>
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="text" value="{{ user.email }}" disabled
+               style="opacity:.5; cursor:not-allowed;">
+      </div>
+
+      <div class="form-group">
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="viewer"    {% if user.role == 'viewer'    %}selected{% endif %}>Viewer</option>
+          <option value="responder" {% if user.role == 'responder' %}selected{% endif %}>Responder</option>
+          <option value="admin"     {% if user.role == 'admin'     %}selected{% endif %}>Admin</option>
+        </select>
+        <small style="color:var(--muted);">
+          Viewer: read-only · Responder: create/edit crises · Admin: full access
+        </small>
+      </div>
+
+      <div class="form-group">
+        <label>Account status</label>
+        <div style="margin-top:.4rem;">
+          <label class="checkbox-label">
+            <input type="checkbox" name="is_active" {% if user.is_active %}checked{% endif %}>
+            Account is active
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="new_password">Reset password <small style="color:var(--muted)">(leave blank to keep current)</small></label>
+        <input type="password" id="new_password" name="new_password"
+               placeholder="New password (min 8 chars)">
+      </div>
+
+      <div style="display:flex; gap:.75rem; margin-top:1.5rem;">
+        <button type="submit" class="btn btn-primary">Save changes</button>
+        <a href="{{ url_for('admin.users') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Danger zone -->
+  {% if user.id != current_user.id %}
+  <div class="card" style="border-color:#ef444466;">
+    <h3 class="card-title" style="color:#ef4444;">Danger zone</h3>
+    <p style="color:var(--muted); font-size:.875rem; margin-bottom:1rem;">
+      Permanently deletes this user and all their data. This cannot be undone.
+    </p>
+    <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}"
+          onsubmit="return confirm('Permanently delete {{ user.username }}? This CANNOT be undone.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger">Delete {{ user.username }}</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
