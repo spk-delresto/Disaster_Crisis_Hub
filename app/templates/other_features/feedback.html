@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Feedback — Crisis Hub{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>💬 Feedback</h2>
+</div>
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:1.5rem; align-items:start;">
+  <div class="card">
+    <h3 class="card-title">Submit feedback</h3>
+    <form method="POST" action="{{ url_for('extra.add_feedback') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Subject *</label><input type="text" name="subject" required placeholder="Brief subject"></div>
+      <div class="form-group"><label>Category</label>
+        <select name="category">
+          <option value="general">General</option>
+          <option value="inaccurate_info">Inaccurate information</option>
+          <option value="missing_resource">Missing resource</option>
+          <option value="suggestion">Suggestion</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Message *</label><textarea name="message" rows="4" required placeholder="Your feedback…"></textarea></div>
+      <button type="submit" class="btn btn-primary btn-full">Submit</button>
+    </form>
+  </div>
+  <div>
+    {% for fb in feedback_items %}
+    <div class="card" style="margin-bottom:1rem;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:.5rem;">
+        <div>
+          <strong>{{ fb.subject }}</strong>
+          <span class="badge badge-medium" style="margin-left:.5rem;">{{ fb.category }}</span>
+          <span class="badge badge-{{ 'resolved' if fb.status == 'resolved' else 'active' if fb.status == 'reviewed' else 'medium' }}" style="margin-left:.25rem;">{{ fb.status }}</span>
+        </div>
+        {% if fb.user_id == current_user.id or current_user.role == 'admin' %}
+        <form method="POST" action="{{ url_for('extra.delete_feedback', fb_id=fb.id) }}"
+              onsubmit="return confirm('Delete this feedback?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn-sm" style="color:#ef4444;">✕</button>
+        </form>
+        {% endif %}
+      </div>
+      <p style="color:var(--muted); font-size:.875rem; margin-bottom:.5rem;">{{ fb.message }}</p>
+      <small style="color:var(--muted);">By {{ fb.submitter.username if fb.submitter else 'Anonymous' }} · {{ fb.created_at.strftime('%d %b %Y') }}</small>
+
+      {% if fb.admin_reply %}
+      <div style="margin-top:.75rem; padding:.75rem; background:var(--surface); border-radius:6px; border-left:3px solid var(--accent);">
+        <small style="color:var(--accent); font-weight:600;">Admin reply:</small>
+        <p style="color:var(--muted); font-size:.875rem; margin-top:.25rem;">{{ fb.admin_reply }}</p>
+      </div>
+      {% endif %}
+
+      {% if current_user.role == 'admin' %}
+      <form method="POST" action="{{ url_for('extra.reply_feedback', fb_id=fb.id) }}" style="margin-top:.75rem;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="display:flex; gap:.5rem;">
+          <input type="text" name="admin_reply" value="{{ fb.admin_reply or '' }}" placeholder="Reply…"
+                 style="flex:1; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:.4rem .7rem; font-size:.85rem;">
+          <select name="status" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.4rem;font-size:.85rem;">
+            {% for s in ['open','reviewed','resolved'] %}
+            <option value="{{ s }}" {% if fb.status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="btn btn-primary" style="padding:.4rem .8rem; font-size:.85rem;">Save</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="card"><p class="text-muted">No feedback submitted yet.</p></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

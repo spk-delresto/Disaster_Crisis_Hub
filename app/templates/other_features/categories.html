@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Categories — Crisis Hub{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>Crisis categories</h2>
+</div>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; align-items:start;">
+
+  {% if current_user.role in ['admin','responder'] %}
+  <div class="card">
+    <h3 class="card-title">Add category</h3>
+    <form method="POST" action="{{ url_for('extra.add_category') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label>Name *</label>
+        <input type="text" name="name" required placeholder="e.g. Infrastructure">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea name="description" rows="2" placeholder="What this category covers…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Colour</label>
+        <input type="color" name="color" value="#3b82f6" style="width:60px;height:36px;border-radius:6px;border:1px solid var(--border);background:none;cursor:pointer;">
+      </div>
+      <button type="submit" class="btn btn-primary">Add category</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h3 class="card-title">All categories ({{ categories|length }})</h3>
+    {% for cat in categories %}
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:.6rem 0; border-bottom:1px solid var(--border);">
+      <div style="display:flex; align-items:center; gap:.75rem;">
+        <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:{{ cat.color }};"></span>
+        <div>
+          <div style="font-weight:600;">{{ cat.name }}</div>
+          <div style="font-size:.8rem; color:var(--muted);">{{ cat.description or '—' }}</div>
+        </div>
+      </div>
+      {% if current_user.role == 'admin' %}
+      <form method="POST" action="{{ url_for('extra.delete_category', cat_id=cat.id) }}"
+            onsubmit="return confirm('Delete category {{ cat.name }}?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-sm" style="color:#ef4444;">Delete</button>
+      </form>
+      {% endif %}
+    </div>
+    {% else %}
+    <p class="text-muted">No categories yet.</p>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

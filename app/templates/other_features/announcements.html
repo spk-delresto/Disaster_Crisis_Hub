@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Announcements — Crisis Hub{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>📢 Announcements</h2>
+</div>
+
+{% if current_user.role in ['admin','responder'] %}
+<div class="card">
+  <h3 class="card-title">Post announcement</h3>
+  <form method="POST" action="{{ url_for('extra.add_announcement') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Title *</label>
+        <input type="text" name="title" required placeholder="Announcement title">
+      </div>
+      <div class="form-group">
+        <label>Priority</label>
+        <select name="priority">
+          <option value="normal">Normal</option>
+          <option value="urgent">Urgent</option>
+          <option value="critical">Critical</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Content *</label>
+      <textarea name="content" rows="3" required placeholder="Announcement details…"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Publish</button>
+  </form>
+</div>
+{% endif %}
+
+{% for ann in announcements %}
+<div class="card" style="border-left:4px solid {% if ann.priority == 'critical' %}#ef4444{% elif ann.priority == 'urgent' %}#f59e0b{% else %}#3b82f6{% endif %};">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+    <div>
+      <div style="display:flex; align-items:center; gap:.5rem; margin-bottom:.4rem;">
+        <span class="badge badge-{{ 'critical' if ann.priority == 'critical' else 'medium' if ann.priority == 'urgent' else 'active' }}">
+          {{ ann.priority.upper() }}
+        </span>
+        <h3 style="font-size:1rem; font-weight:600;">{{ ann.title }}</h3>
+      </div>
+      <p style="color:var(--muted); font-size:.9rem; line-height:1.6;">{{ ann.content }}</p>
+      <small style="color:var(--muted);">By {{ ann.creator.username }} · {{ ann.created_at.strftime('%d %b %Y, %H:%M') }}</small>
+    </div>
+    {% if ann.created_by == current_user.id or current_user.role == 'admin' %}
+    <form method="POST" action="{{ url_for('extra.delete_announcement', ann_id=ann.id) }}"
+          onsubmit="return confirm('Delete this announcement?')" style="flex-shrink:0; margin-left:1rem;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn-sm" style="color:#ef4444;">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="card"><p class="text-muted">No announcements yet.</p></div>
+{% endfor %}
+{% endblock %}

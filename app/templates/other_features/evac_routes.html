@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Evacuation Routes — {{ disaster.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>🚗 Evacuation routes — {{ disaster.title }}</h2>
+  <a href="{{ url_for('crisis.detail', disaster_id=disaster.id) }}" class="btn btn-secondary">← Back</a>
+</div>
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:1.5rem; align-items:start;">
+  <div class="card">
+    <h3 class="card-title">Add route</h3>
+    <form method="POST" action="{{ url_for('extra.add_route', disaster_id=disaster.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Route name *</label><input type="text" name="route_name" required placeholder="e.g. North corridor"></div>
+      <div class="form-group"><label>From *</label><input type="text" name="origin" required placeholder="Starting point"></div>
+      <div class="form-group"><label>To *</label><input type="text" name="destination" required placeholder="Safe destination"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Distance (km)</label><input type="number" name="distance_km" step="0.1" min="0"></div>
+        <div class="form-group"><label>Est. time</label><input type="text" name="estimated_time" placeholder="e.g. 45 min"></div>
+      </div>
+      <div class="form-group"><label>Status</label>
+        <select name="status">
+          <option value="open">Open</option>
+          <option value="congested">Congested</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+      <button type="submit" class="btn btn-primary btn-full">Add route</button>
+    </form>
+  </div>
+  <div>
+    {% for r in routes %}
+    <div class="card" style="border-left:4px solid {% if r.status == 'open' %}#22c55e{% elif r.status == 'congested' %}#f59e0b{% else %}#ef4444{% endif %}; margin-bottom:1rem;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <h3 style="font-size:1rem; font-weight:600; margin-bottom:.4rem;">{{ r.route_name }}</h3>
+          <p style="color:var(--muted); font-size:.875rem;">📍 {{ r.origin }} → {{ r.destination }}</p>
+          {% if r.distance_km %}<p style="color:var(--muted); font-size:.8rem;">{{ r.distance_km }} km · {{ r.estimated_time or '' }}</p>{% endif %}
+          {% if r.notes %}<p style="color:var(--muted); font-size:.8rem; margin-top:.3rem;">{{ r.notes }}</p>{% endif %}
+        </div>
+        <div style="display:flex; flex-direction:column; gap:.4rem; align-items:flex-end;">
+          <span class="badge badge-{{ 'resolved' if r.status == 'open' else 'critical' if r.status == 'closed' else 'medium' }}">{{ r.status }}</span>
+          {% if current_user.role in ['admin','responder'] %}
+          <form method="POST" action="{{ url_for('extra.update_route', route_id=r.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="status" onchange="this.form.submit()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.2rem;font-size:.8rem;">
+              {% for s in ['open','congested','closed'] %}
+              <option value="{{ s }}" {% if r.status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          <form method="POST" action="{{ url_for('extra.delete_route', route_id=r.id) }}"
+                onsubmit="return confirm('Delete this route?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn-sm" style="color:#ef4444;">Delete</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card"><p class="text-muted">No evacuation routes defined yet.</p></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
