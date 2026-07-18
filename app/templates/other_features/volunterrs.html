@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Volunteers — {{ disaster.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>🙋 Volunteers — {{ disaster.title }}</h2>
+  <a href="{{ url_for('crisis.detail', disaster_id=disaster.id) }}" class="btn btn-secondary">← Back</a>
+</div>
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:1.5rem; align-items:start;">
+  <div class="card">
+    <h3 class="card-title">{{ 'Your registration' if my_reg else 'Register as volunteer' }}</h3>
+    {% if my_reg %}
+      <p style="color:var(--muted); margin-bottom:1rem;">Status: <span class="badge badge-{{ 'resolved' if my_reg.status == 'active' else 'medium' }}">{{ my_reg.status }}</span></p>
+      <form method="POST" action="{{ url_for('extra.delete_volunteer', vol_id=my_reg.id) }}"
+            onsubmit="return confirm('Withdraw your registration?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-secondary btn-full">Withdraw registration</button>
+      </form>
+    {% else %}
+      <form method="POST" action="{{ url_for('extra.register_volunteer', disaster_id=disaster.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group"><label>Your skills</label><textarea name="skills" rows="2" placeholder="First aid, logistics, translation…"></textarea></div>
+        <div class="form-group"><label>Availability</label><input type="text" name="availability" placeholder="e.g. Weekends, full-time"></div>
+        <div class="form-group"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+        <button type="submit" class="btn btn-primary btn-full">Register</button>
+      </form>
+    {% endif %}
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table class="table">
+      <thead><tr><th>Volunteer</th><th>Skills</th><th>Availability</th><th>Status</th>{% if current_user.role in ['admin','responder'] %}<th>Update</th>{% endif %}</tr></thead>
+      <tbody>
+      {% for v in volunteers %}
+      <tr>
+        <td><strong>{{ v.user.username }}</strong></td>
+        <td style="font-size:.85rem;color:var(--muted);">{{ v.skills or '—' }}</td>
+        <td style="font-size:.85rem;color:var(--muted);">{{ v.availability or '—' }}</td>
+        <td><span class="badge badge-{{ 'resolved' if v.status == 'active' else 'medium' }}">{{ v.status }}</span></td>
+        {% if current_user.role in ['admin','responder'] %}
+        <td>
+          <form method="POST" action="{{ url_for('extra.update_volunteer', vol_id=v.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="status" onchange="this.form.submit()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.2rem .4rem;font-size:.8rem;">
+              {% for s in ['pending','approved','active','completed'] %}
+              <option value="{{ s }}" {% if v.status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </form>
+        </td>
+        {% endif %}
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted" style="text-align:center;padding:2rem;">No volunteers registered.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

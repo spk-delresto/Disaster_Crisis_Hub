@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Relief Supplies — {{ disaster.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>🎁 Relief supplies — {{ disaster.title }}</h2>
+  <a href="{{ url_for('crisis.detail', disaster_id=disaster.id) }}" class="btn btn-secondary">← Back</a>
+</div>
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:1.5rem; align-items:start;">
+  <div class="card">
+    <h3 class="card-title">Add supply item</h3>
+    <form method="POST" action="{{ url_for('extra.add_supply', disaster_id=disaster.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Item name *</label><input type="text" name="item_name" required placeholder="e.g. Rice bags"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Quantity</label><input type="number" name="quantity" min="0" value="0"></div>
+        <div class="form-group"><label>Unit</label><input type="text" name="unit" placeholder="kg, boxes…"></div>
+      </div>
+      <div class="form-group"><label>Donated by</label><input type="text" name="donated_by" placeholder="Organisation or person"></div>
+      <div class="form-group"><label>Status</label>
+        <select name="status">
+          <option value="available">Available</option>
+          <option value="distributed">Distributed</option>
+          <option value="depleted">Depleted</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Add item</button>
+    </form>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden;">
+    <table class="table">
+      <thead><tr><th>Item</th><th>Quantity</th><th>Donated by</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for s in supplies %}
+      <tr>
+        <td><strong>{{ s.item_name }}</strong></td>
+        <td>{{ s.quantity }} {{ s.unit or '' }}</td>
+        <td style="font-size:.85rem;color:var(--muted);">{{ s.donated_by or '—' }}</td>
+        <td><span class="badge badge-{{ 'resolved' if s.status == 'available' else 'critical' if s.status == 'depleted' else 'medium' }}">{{ s.status }}</span></td>
+        <td style="display:flex;gap:.4rem;">
+          <form method="POST" action="{{ url_for('extra.update_supply', supply_id=s.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="status" onchange="this.form.submit()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.2rem;font-size:.8rem;">
+              {% for st in ['available','distributed','depleted'] %}
+              <option value="{{ st }}" {% if s.status == st %}selected{% endif %}>{{ st }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          <form method="POST" action="{{ url_for('extra.delete_supply', supply_id=s.id) }}"
+                onsubmit="return confirm('Remove this item?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn-sm" style="color:#ef4444;">✕</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted" style="text-align:center;padding:2rem;">No supplies logged yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

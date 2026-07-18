@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Timeline — {{ disaster.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>🕐 Incident timeline — {{ disaster.title }}</h2>
+  <a href="{{ url_for('crisis.detail', disaster_id=disaster.id) }}" class="btn btn-secondary">← Back</a>
+</div>
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:1.5rem; align-items:start;">
+  <div class="card">
+    <h3 class="card-title">Add event</h3>
+    <form method="POST" action="{{ url_for('extra.add_timeline', disaster_id=disaster.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Event time *</label><input type="datetime-local" name="event_time" required></div>
+      <div class="form-group"><label>Title *</label><input type="text" name="title" required placeholder="e.g. Flood waters rising"></div>
+      <div class="form-group"><label>Description</label><textarea name="description" rows="3" placeholder="What happened…"></textarea></div>
+      <button type="submit" class="btn btn-primary btn-full">Add to timeline</button>
+    </form>
+  </div>
+  <div>
+    <div style="position:relative; padding-left:1.5rem; border-left:2px solid var(--border);">
+      {% for event in events %}
+      <div style="position:relative; margin-bottom:1.5rem;">
+        <div style="position:absolute; left:-1.6rem; top:.3rem; width:12px; height:12px; border-radius:50%; background:var(--accent); border:2px solid var(--bg);"></div>
+        <div class="card" style="margin:0;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <div style="font-size:.8rem; color:var(--muted); margin-bottom:.2rem;">{{ event.event_time.strftime('%d %b %Y, %H:%M') }}</div>
+              <div style="font-weight:600; margin-bottom:.3rem;">{{ event.title }}</div>
+              {% if event.description %}<p style="color:var(--muted); font-size:.875rem;">{{ event.description }}</p>{% endif %}
+              <small style="color:var(--muted);">Reported by {{ event.reporter.username }}</small>
+            </div>
+            {% if event.created_by == current_user.id or current_user.role == 'admin' %}
+            <form method="POST" action="{{ url_for('extra.delete_timeline', event_id=event.id) }}"
+                  onsubmit="return confirm('Delete this event?')" style="flex-shrink:0; margin-left:1rem;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn-sm" style="color:#ef4444;">✕</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="card"><p class="text-muted">No timeline events yet.</p></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

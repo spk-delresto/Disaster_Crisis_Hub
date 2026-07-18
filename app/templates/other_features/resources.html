@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Resource Requests — {{ disaster.title }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h2>📦 Resource requests — {{ disaster.title }}</h2>
+  <a href="{{ url_for('crisis.detail', disaster_id=disaster.id) }}" class="btn btn-secondary">← Back</a>
+</div>
+<div style="display:grid; grid-template-columns:1fr 2fr; gap:1.5rem; align-items:start;">
+  <div class="card">
+    <h3 class="card-title">Request a resource</h3>
+    <form method="POST" action="{{ url_for('extra.add_resource', disaster_id=disaster.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group"><label>Resource *</label><input type="text" name="resource" required placeholder="e.g. Water bottles"></div>
+      <div class="form-grid">
+        <div class="form-group"><label>Quantity</label><input type="number" name="quantity" min="1" value="1"></div>
+        <div class="form-group"><label>Unit</label><input type="text" name="unit" placeholder="e.g. boxes"></div>
+      </div>
+      <div class="form-group"><label>Priority</label>
+        <select name="priority">
+          <option value="low">Low</option><option value="medium" selected>Medium</option>
+          <option value="high">High</option><option value="critical">Critical</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+      <button type="submit" class="btn btn-primary btn-full">Submit request</button>
+    </form>
+  </div>
+  <div class="card" style="padding:0; overflow:hidden;">
+    <table class="table">
+      <thead><tr><th>Resource</th><th>Qty</th><th>Priority</th><th>Status</th><th>By</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for r in reqs %}
+      <tr>
+        <td><strong>{{ r.resource }}</strong>{% if r.notes %}<br><small style="color:var(--muted);">{{ r.notes }}</small>{% endif %}</td>
+        <td>{{ r.quantity }} {{ r.unit or '' }}</td>
+        <td><span class="badge badge-{{ r.priority }}">{{ r.priority }}</span></td>
+        <td><span class="badge badge-{{ 'resolved' if r.status == 'fulfilled' else 'active' if r.status == 'approved' else 'medium' }}">{{ r.status }}</span></td>
+        <td style="font-size:.8rem; color:var(--muted);">{{ r.requester.username }}</td>
+        <td>
+          {% if current_user.role in ['admin','responder'] %}
+          <form method="POST" action="{{ url_for('extra.update_resource', req_id=r.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <select name="status" onchange="this.form.submit()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.2rem .4rem;font-size:.8rem;">
+              {% for s in ['pending','approved','fulfilled','cancelled'] %}
+              <option value="{{ s }}" {% if r.status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </form>
+          {% endif %}
+          <form method="POST" action="{{ url_for('extra.delete_resource', req_id=r.id) }}" style="display:inline;"
+                onsubmit="return confirm('Remove this request?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn-sm" style="color:#ef4444;">✕</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" class="text-muted" style="text-align:center;padding:2rem;">No requests yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
