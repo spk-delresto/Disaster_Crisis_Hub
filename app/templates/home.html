@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disaster Crisis Hub — Real-Time Disaster Management</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  <style>
+    /* ── Home-page specific styles ─────────────────────────────── */
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI', system-ui, sans-serif; background:#0f1117; color:#e2e8f0; }
+
+    /* Hero */
+    .hero {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f1117 0%, #161b27 50%, #1a1f30 100%);
+      display: flex; flex-direction: column;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content:'';
+      position:absolute; inset:0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.08) 0%, transparent 60%),
+                  radial-gradient(ellipse at 80% 20%, rgba(239,68,68,0.06) 0%, transparent 50%);
+    }
+
+    /* Top nav */
+    .home-nav {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1.25rem 3rem; position:relative; z-index:10;
+      border-bottom:1px solid rgba(255,255,255,0.05);
+    }
+    .home-nav .brand { display:flex; align-items:center; gap:.6rem; font-size:1.1rem; font-weight:700; color:#e2e8f0; text-decoration:none; }
+    .home-nav .brand-icon { font-size:1.6rem; }
+    .home-nav .nav-actions { display:flex; gap:.75rem; }
+
+    /* Hero content */
+    .hero-body {
+      flex:1; display:flex; align-items:center; justify-content:center;
+      flex-direction:column; text-align:center; padding:4rem 2rem;
+      position:relative; z-index:5;
+    }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:.5rem;
+      background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3);
+      color:#f87171; padding:.4rem 1rem; border-radius:999px; font-size:.8rem;
+      font-weight:600; letter-spacing:.05em; text-transform:uppercase; margin-bottom:1.5rem;
+    }
+    .hero-badge span { width:6px; height:6px; border-radius:50%; background:#ef4444; animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    .hero h1 { font-size:3.5rem; font-weight:800; line-height:1.15; margin-bottom:1.25rem; }
+    .hero h1 span { background:linear-gradient(90deg,#3b82f6,#ef4444); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .hero-sub { font-size:1.15rem; color:#94a3b8; max-width:580px; line-height:1.7; margin-bottom:2.5rem; }
+    .hero-actions { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; }
+
+    /* Stats bar */
+    .stats-bar {
+      display:flex; justify-content:center; gap:3rem; flex-wrap:wrap;
+      padding:2rem; background:rgba(255,255,255,0.02);
+      border-top:1px solid rgba(255,255,255,0.06);
+      position:relative; z-index:5;
+    }
+    .stat-item { text-align:center; }
+    .stat-item .num { font-size:1.8rem; font-weight:800; color:#3b82f6; }
+    .stat-item .lbl { font-size:.8rem; color:#64748b; text-transform:uppercase; letter-spacing:.05em; margin-top:.2rem; }
+
+    /* Sections */
+    section { padding:5rem 2rem; }
+    .section-inner { max-width:1100px; margin:0 auto; }
+    .section-tag { font-size:.78rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#3b82f6; margin-bottom:.75rem; }
+    .section-title { font-size:2rem; font-weight:800; margin-bottom:1rem; }
+    .section-sub { color:#94a3b8; font-size:1rem; line-height:1.7; max-width:560px; margin-bottom:3rem; }
+
+    /* Features grid */
+    .features-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1.5rem; }
+    .feature-card {
+      background:#161b27; border:1px solid #2a3347; border-radius:14px;
+      padding:1.75rem; transition:border-color .2s, transform .2s;
+    }
+    .feature-card:hover { border-color:#3b82f6; transform:translateY(-3px); }
+    .feature-icon { font-size:2rem; margin-bottom:1rem; }
+    .feature-card h3 { font-size:1rem; font-weight:700; margin-bottom:.5rem; }
+    .feature-card p { color:#8892a4; font-size:.875rem; line-height:1.65; }
+
+    /* How it works */
+    .how-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1.5rem; }
+    .how-step { text-align:center; padding:2rem 1.5rem; }
+    .step-num {
+      width:48px; height:48px; border-radius:50%;
+      background:linear-gradient(135deg,#3b82f6,#1d4ed8);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.1rem; font-weight:800; margin:0 auto 1rem;
+    }
+    .how-step h3 { font-size:.95rem; font-weight:700; margin-bottom:.4rem; }
+    .how-step p { color:#8892a4; font-size:.85rem; line-height:1.6; }
+
+    /* Articles */
+    .articles-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:1.5rem; }
+    .article-card {
+      background:#161b27; border:1px solid #2a3347; border-radius:14px;
+      overflow:hidden; transition:border-color .2s, transform .2s;
+    }
+    .article-card:hover { border-color:#475569; transform:translateY(-3px); }
+    .article-header { padding:1.5rem 1.5rem 0; }
+    .article-tag {
+      display:inline-block; padding:.2rem .65rem; border-radius:999px;
+      font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+      margin-bottom:.75rem;
+    }
+    .tag-flood { background:rgba(59,130,246,.15); color:#60a5fa; }
+    .tag-earthquake { background:rgba(245,158,11,.15); color:#fbbf24; }
+    .tag-fire { background:rgba(239,68,68,.15); color:#f87171; }
+    .tag-preparedness { background:rgba(34,197,94,.15); color:#4ade80; }
+    .tag-climate { background:rgba(139,92,246,.15); color:#a78bfa; }
+    .tag-response { background:rgba(249,115,22,.15); color:#fb923c; }
+    .article-card h3 { font-size:1rem; font-weight:700; line-height:1.4; margin-bottom:.5rem; }
+    .article-card p { color:#8892a4; font-size:.85rem; line-height:1.65; padding:0 1.5rem 1rem; }
+    .article-footer { padding:.75rem 1.5rem 1.25rem; border-top:1px solid #2a3347; display:flex; align-items:center; justify-content:space-between; }
+    .article-meta { font-size:.78rem; color:#64748b; }
+    .read-more { font-size:.8rem; color:#3b82f6; font-weight:600; text-decoration:none; }
+    .read-more:hover { text-decoration:underline; }
+
+    /* Disaster types */
+    .types-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; }
+    .type-card {
+      background:#161b27; border:1px solid #2a3347; border-radius:12px;
+      padding:1.5rem 1rem; text-align:center; transition:border-color .2s;
+    }
+    .type-card:hover { border-color:#475569; }
+    .type-card .type-icon { font-size:2rem; margin-bottom:.5rem; }
+    .type-card .type-name { font-size:.85rem; font-weight:600; }
+    .type-card .type-desc { font-size:.75rem; color:#64748b; margin-top:.25rem; }
+
+    /* CTA */
+    .cta-section {
+      background:linear-gradient(135deg,#1e3a5f,#1a1f30);
+      border-top:1px solid #2a3347; border-bottom:1px solid #2a3347;
+      text-align:center; padding:5rem 2rem;
+    }
+    .cta-section h2 { font-size:2.2rem; font-weight:800; margin-bottom:1rem; }
+    .cta-section p { color:#94a3b8; margin-bottom:2rem; font-size:1rem; }
+
+    /* Footer */
+    .home-footer {
+      background:#0a0d14; border-top:1px solid #1e2433;
+      padding:3rem 2rem 2rem; text-align:center;
+    }
+    .footer-brand { font-size:1.1rem; font-weight:700; margin-bottom:.5rem; }
+    .footer-sub { color:#64748b; font-size:.85rem; margin-bottom:2rem; }
+    .footer-links { display:flex; justify-content:center; gap:2rem; flex-wrap:wrap; margin-bottom:2rem; }
+    .footer-links a { color:#64748b; font-size:.85rem; text-decoration:none; }
+    .footer-links a:hover { color:#e2e8f0; }
+    .footer-copy { color:#374151; font-size:.8rem; }
+
+    /* Buttons */
+    .btn { display:inline-flex; align-items:center; gap:.4rem; padding:.65rem 1.4rem; border-radius:8px; font-size:.9rem; font-weight:600; cursor:pointer; border:none; text-decoration:none; transition:opacity .15s, transform .1s; }
+    .btn:hover { opacity:.9; transform:scale(1.02); }
+    .btn-primary { background:#3b82f6; color:#fff; }
+    .btn-danger { background:#ef4444; color:#fff; }
+    .btn-outline { background:transparent; color:#e2e8f0; border:1px solid #2a3347; }
+    .btn-outline:hover { border-color:#475569; }
+    .btn-lg { padding:.85rem 2rem; font-size:1rem; border-radius:10px; }
+
+    @media(max-width:640px) {
+      .hero h1 { font-size:2.2rem; }
+      .home-nav { padding:1rem 1.5rem; }
+      .stats-bar { gap:1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── TOP NAV ── -->
+<nav class="home-nav">
+  <a href="{{ url_for('home.index') }}" class="brand">
+    <span class="brand-icon">🌐</span> Disaster Crisis Hub
+  </a>
+  <div class="nav-actions">
+    {% if current_user.is_authenticated %}
+      <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">Go to Dashboard</a>
+    {% else %}
+      <a href="{{ url_for('auth.login') }}" class="btn btn-outline">Log in</a>
+      <a href="{{ url_for('auth.register') }}" class="btn btn-danger">Get started</a>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-body">
+    <div class="hero-badge"><span></span> Live monitoring active</div>
+    <h1>Respond Faster.<br><span>Save More Lives.</span></h1>
+    <p class="hero-sub">
+      Disaster Crisis Hub is a real-time disaster management platform that helps
+      communities report, track, and coordinate responses to natural and man-made
+      emergencies — all in one place.
+    </p>
+    <div class="hero-actions">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary btn-lg">Open Dashboard →</a>
+      {% else %}
+        <a href="{{ url_for('auth.register') }}" class="btn btn-danger btn-lg">Get started free</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-outline btn-lg">Log in</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <div class="num">{{ total_crises }}</div>
+      <div class="lbl">Crises tracked</div>
+    </div>
+    <div class="stat-item">
+      <div class="num">{{ active_crises }}</div>
+      <div class="lbl">Active right now</div>
+    </div>
+    <div class="stat-item">
+      <div class="num">{{ total_users }}</div>
+      <div class="lbl">Registered users</div>
+    </div>
+    <div class="stat-item">
+      <div class="num">16</div>
+      <div class="lbl">CRUD features</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section style="background:#0f1117;">
+  <div class="section-inner">
+    <div class="section-tag">Platform features</div>
+    <h2 class="section-title">Everything you need in a crisis</h2>
+    <p class="section-sub">Built for first responders, volunteers, and affected communities to coordinate rapidly and effectively.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🗺️</div>
+        <h3>Live disaster map</h3>
+        <p>Interactive Leaflet.js map showing all active disasters in real time with severity-coded markers and popup details.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>ML severity prediction</h3>
+        <p>Machine learning model automatically predicts disaster severity (low → critical) based on type, location, and affected population.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>Email & SMS alerts</h3>
+        <p>Instantly notify emergency contacts via email or SMS when a new crisis is reported or severity escalates.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌤️</div>
+        <h3>Weather integration</h3>
+        <p>Live weather data from OpenWeatherMap displayed on every crisis report — temperature, wind speed, and humidity.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Dashboard charts</h3>
+        <p>Visual analytics with Chart.js — events by type, severity breakdown, and 7-day activity timeline.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🙋</div>
+        <h3>Volunteer coordination</h3>
+        <p>Register volunteers for specific disasters, track their skills and availability, and manage their status.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>Resource management</h3>
+        <p>Request, track, and fulfil relief supplies and resource requests tied to each crisis report.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🚗</div>
+        <h3>Evacuation routes</h3>
+        <p>Define and monitor evacuation routes with real-time status — open, congested, or closed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Security & audit logs</h3>
+        <p>Every action is logged with IP address and timestamp. CSRF protection, rate limiting, and bcrypt password hashing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section style="background:#0d1018;">
+  <div class="section-inner">
+    <div class="section-tag">How it works</div>
+    <h2 class="section-title">From report to response in minutes</h2>
+    <div class="how-grid">
+      <div class="how-step">
+        <div class="step-num">1</div>
+        <h3>Report a crisis</h3>
+        <p>Any registered user can submit a disaster report with location, type, and details. The ML model instantly predicts severity.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">2</div>
+        <h3>Alerts go out</h3>
+        <p>Emergency contacts are notified instantly via email or SMS. Responders are mobilised.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">3</div>
+        <h3>Coordinate response</h3>
+        <p>Track affected areas, request resources, assign volunteers, and log the incident timeline — all in one place.</p>
+      </div>
+      <div class="how-step">
+        <div class="step-num">4</div>
+        <h3>Monitor & resolve</h3>
+        <p>Update status, post announcements, and mark the crisis resolved when the situation is under control.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── DISASTER TYPES ── -->
+<section style="background:#0f1117;">
+  <div class="section-inner">
+    <div class="section-tag">Coverage</div>
+    <h2 class="section-title">Disasters we track</h2>
+    <p class="section-sub">The platform covers all major natural and man-made disaster categories.</p>
+    <div class="types-grid">
+      <div class="type-card">
+        <div class="type-icon">🌊</div>
+        <div class="type-name">Flood</div>
+        <div class="type-desc">Flash & river flooding</div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">🏔️</div>
+        <div class="type-name">Earthquake</div>
+        <div class="type-desc">Seismic events & aftershocks</div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">🔥</div>
+        <div class="type-name">Wildfire</div>
+        <div class="type-desc">Forest & urban fires</div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">🌀</div>
+        <div class="type-name">Hurricane</div>
+        <div class="type-desc">Cyclones & typhoons</div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">⛰️</div>
+        <div class="type-name">Landslide</div>
+        <div class="type-desc">Mudslides & debris flow</div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">🌊</div>
+        <div class="type-name">Tsunami</div>
+        <div class="type-desc">Coastal wave events</div>
+      </div>
+      <div class="type-card">
+        <div class="type-icon">⚠️</div>
+        <div class="type-name">Other</div>
+        <div class="type-desc">Industrial & other crises</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── ARTICLES ── -->
+<section style="background:#0d1018;">
+  <div class="section-inner">
+    <div class="section-tag">Knowledge base</div>
+    <h2 class="section-title">Disaster awareness articles</h2>
+    <p class="section-sub">Stay informed with guides on preparedness, response strategies, and lessons from past disasters.</p>
+    <div class="articles-grid">
+
+      <div class="article-card">
+        <div class="article-header">
+          <span class="article-tag tag-flood">Flood</span>
+          <h3>What to do when a flash flood warning is issued</h3>
+        </div>
+        <p>Flash floods can develop within minutes. Learn the immediate steps — evacuate low-lying areas, avoid driving through water, and locate high ground. Even 6 inches of moving water can knock a person down.</p>
+        <div class="article-footer">
+          <span class="article-meta">Preparedness guide</span>
+          <a href="https://www.ready.gov/floods" target="_blank" class="read-more">Read more →</a>
+        </div>
+      </div>
+
+      <div class="article-card">
+        <div class="article-header">
+          <span class="article-tag tag-earthquake">Earthquake</span>
+          <h3>Drop, Cover, and Hold On — the science behind it</h3>
+        </div>
+        <p>The "Drop, Cover, Hold On" method remains the most effective way to protect yourself during shaking. Research from earthquake engineering studies shows it reduces injury risk by over 70% compared to running outside.</p>
+        <div class="article-footer">
+          <span class="article-meta">Safety protocol</span>
+          <a href="https://www.dropcoverholdon.org" target="_blank" class="read-more">Read more →</a>
+        </div>
+      </div>
+
+      <div class="article-card">
+        <div class="article-header">
+          <span class="article-tag tag-fire">Wildfire</span>
+          <h3>Building defensible space around your home</h3>
+        </div>
+        <p>Creating a buffer zone of 30–100 feet around structures significantly reduces wildfire risk. This includes clearing dry vegetation, using fire-resistant plants, and maintaining ember-resistant vents and gutters.</p>
+        <div class="article-footer">
+          <span class="article-meta">Prevention guide</span>
+          <a href="https://www.fire.ca.gov/programs/communications/defensible-space-ember-resistant-zones/" target="_blank" class="read-more">Read more →</a>
+        </div>
+      </div>
+
+      <div class="article-card">
+        <div class="article-header">
+          <span class="article-tag tag-preparedness">Preparedness</span>
+          <h3>Build your 72-hour emergency kit</h3>
+        </div>
+        <p>Every household should have a go-bag ready: 3 days of water (1 gallon per person per day), non-perishable food, a first aid kit, flashlight, batteries, copies of documents, and cash. Customise for your family's needs.</p>
+        <div class="article-footer">
+          <span class="article-meta">Household guide</span>
+          <a href="https://www.ready.gov/kit" target="_blank" class="read-more">Read more →</a>
+        </div>
+      </div>
+
+      <div class="article-card">
+        <div class="article-header">
+          <span class="article-tag tag-climate">Climate</span>
+          <h3>How climate change is intensifying natural disasters</h3>
+        </div>
+        <p>Rising global temperatures are making hurricanes stronger, wildfires more frequent, and floods more severe. Understanding the link between climate change and disaster frequency helps communities plan and adapt better.</p>
+        <div class="article-footer">
+          <span class="article-meta">Research overview</span>
+          <a href="https://www.ipcc.ch" target="_blank" class="read-more">Read more →</a>
+        </div>
+      </div>
+
+      <div class="article-card">
+        <div class="article-header">
+          <span class="article-tag tag-response">Response</span>
+          <h3>The Incident Command System (ICS) explained</h3>
+        </div>
+        <p>ICS is the standardised approach used by emergency responders worldwide. It establishes a clear chain of command, unified operations, and resource management — preventing chaos in the critical first hours of a disaster.</p>
+        <div class="article-footer">
+          <span class="article-meta">Professional training</span>
+          <a href="https://training.fema.gov/is/courseoverview.aspx?code=IS-100.c" target="_blank" class="read-more">Read more →</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<div class="cta-section">
+  <h2>Ready to make a difference?</h2>
+  <p>Join the platform and help coordinate disaster response in your community.</p>
+  {% if current_user.is_authenticated %}
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary btn-lg">Go to Dashboard →</a>
+  {% else %}
+    <a href="{{ url_for('auth.register') }}" class="btn btn-danger btn-lg">Create free account</a>
+  {% endif %}
+</div>
+
+<!-- ── FOOTER ── -->
+<footer class="home-footer">
+  <div class="footer-brand">🌐 Disaster Crisis Hub</div>
+  <div class="footer-sub">Real-time disaster management for communities</div>
+  <div class="footer-links">
+    <a href="{{ url_for('auth.login') }}">Log in</a>
+    <a href="{{ url_for('auth.register') }}">Register</a>
+    <a href="https://www.un.org/en/global-issues/disaster-risk" target="_blank">UN Disaster Risk</a>
+    <a href="https://www.ifrc.org" target="_blank">Red Cross</a>
+    <a href="https://www.ready.gov" target="_blank">Ready.gov</a>
+  </div>
+  <div class="footer-copy">© 2025 Disaster Crisis Hub. Built with Flask, MySQL & ❤️</div>
+</footer>
+
+</body>
+</html>
