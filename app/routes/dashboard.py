@@ -10,25 +10,22 @@ dashboard_bp = Blueprint("dashboard", __name__)
 @dashboard_bp.route("/")
 @login_required
 def index():
-    total     = Disaster.query.count()
-    active    = Disaster.query.filter_by(status="active").count()
-    critical  = Disaster.query.filter_by(severity="critical").count()
-    resolved  = Disaster.query.filter_by(status="resolved").count()
-
-    recent = Disaster.query.order_by(Disaster.created_at.desc()).limit(5).all()
+    total    = Disaster.query.count()
+    active   = Disaster.query.filter_by(status="active").count()
+    critical = Disaster.query.filter_by(severity="critical").count()
+    resolved = Disaster.query.filter_by(status="resolved").count()
+    recent   = Disaster.query.order_by(Disaster.created_at.desc()).limit(5).all()
 
     return render_template(
         "dashboard/index.html",
-        total=total, active=active, critical=critical, resolved=resolved,
-        recent=recent,
+        total=total, active=active, critical=critical,
+        resolved=resolved, recent=recent,
     )
 
 
-@dashboard_bp.route("/api/chart-data")
+@dashboard_bp.route("/chart-data")
 @login_required
 def chart_data():
-    """JSON endpoint consumed by Chart.js on the dashboard."""
-
     # By type
     by_type = db.session.query(
         Disaster.disaster_type, func.count(Disaster.id)
