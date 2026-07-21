@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Manage Crises — Admin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2>⚙️ All crisis reports</h2>
+  <a href="{{ url_for('admin.index') }}" class="btn btn-secondary">← Admin panel</a>
+</div>
+
+<div class="card" style="padding:0; overflow:hidden;">
+  <table class="table">
+    <thead>
+      <tr><th>Title</th><th>Type</th><th>Severity</th><th>Status</th><th>Created by</th><th>Date</th><th>Actions</th></tr>
+    </thead>
+    <tbody>
+    {% for d in crises %}
+    <tr>
+      <td><a href="{{ url_for('crisis.detail', disaster_id=d.id) }}">{{ d.title }}</a></td>
+      <td>{{ d.disaster_type }}</td>
+      <td><span class="badge badge-{{ d.severity }}">{{ d.severity }}</span></td>
+      <td><span class="badge badge-{{ d.status }}">{{ d.status }}</span></td>
+      <td style="color:var(--muted); font-size:.875rem;">{{ d.creator.username }}</td>
+      <td style="color:var(--muted); font-size:.8rem;">{{ d.created_at.strftime('%d %b %Y') }}</td>
+      <td>
+        <div style="display:flex; gap:.4rem;">
+          <a href="{{ url_for('crisis.edit', disaster_id=d.id) }}" class="btn-sm">Edit</a>
+          <form method="POST" action="{{ url_for('admin.delete_crisis', disaster_id=d.id) }}"
+                onsubmit="return confirm('Force-delete this crisis report?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-sm" style="color:#ef4444;">Delete</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="text-muted" style="text-align:center; padding:2rem;">No crisis reports.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

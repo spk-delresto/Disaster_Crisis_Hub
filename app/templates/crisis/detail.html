@@ -50,19 +50,18 @@
     <div class="meta-label">ML severity score</div>
     <div class="meta-value">{{ "%.0f"|format(disaster.severity_score * 100) }}%</div>
     <div class="severity-bar-wrap">
-      <div class="severity-bar" style="
-        width:{{ "%.0f"|format(disaster.severity_score * 100) }}%;
-        background:{% if disaster.severity_score >= .75 %}#ef4444{% elif disaster.severity_score >= .5 %}#f97316{% elif disaster.severity_score >= .25 %}#f59e0b{% else %}#22c55e{% endif %};">
+      <div class="severity-bar" style="width:{{ "%.0f"|format(disaster.severity_score * 100) }}%;
+        background:{% if disaster.severity_score >= 0.75 %}#ef4444{% elif disaster.severity_score >= 0.5 %}#f97316{% elif disaster.severity_score >= 0.25 %}#f59e0b{% else %}#22c55e{% endif %};">
       </div>
     </div>
   </div>
   {% endif %}
 </div>
 
-<!-- Weather widget -->
+<!-- Weather -->
 {% if weather %}
-<div class="card" style="margin-bottom:1.5rem;">
-  <h3 class="card-title">Current weather at location</h3>
+<div class="card">
+  <h3 class="card-title">🌤 Current weather at location</h3>
   <div style="display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
     <img src="https://openweathermap.org/img/wn/{{ weather.icon }}@2x.png" alt="{{ weather.description }}" style="width:60px;height:60px;">
     <div>
@@ -85,16 +84,331 @@
 </div>
 {% endif %}
 
-<!-- Embedded mini-map -->
+<!-- Map -->
 <div class="card">
-  <h3 class="card-title">Map pin</h3>
+  <h3 class="card-title">📍 Map pin</h3>
   <div id="detail-map" style="height:300px; border-radius:8px;"></div>
+</div>
+
+<!-- ══ FEATURE 11 — AFFECTED AREAS ══ -->
+<div class="card">
+  <h3 class="card-title">🏘 Affected areas</h3>
+  {% if disaster.affected_areas %}
+  <table class="table" style="margin-bottom:1rem;">
+    <thead><tr><th>Area</th><th>Population</th><th>Damage</th><th>Notes</th><th></th></tr></thead>
+    <tbody>
+    {% for area in disaster.affected_areas %}
+    <tr>
+      <td><strong>{{ area.area_name }}</strong></td>
+      <td>{{ "{:,}".format(area.population or 0) }}</td>
+      <td><span class="badge badge-{{ 'critical' if area.damage_level == 'destroyed' else 'high' if area.damage_level == 'severe' else 'medium' if area.damage_level == 'moderate' else 'low' }}">{{ area.damage_level }}</span></td>
+      <td style="color:var(--muted);font-size:.85rem;">{{ area.notes or '—' }}</td>
+      <td>
+        <form method="POST" action="{{ url_for('crisis.delete_area', area_id=area.id) }}"
+              onsubmit="return confirm('Remove this area?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn-sm" style="color:#ef4444;">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <form method="POST" action="{{ url_for('crisis.add_area', disaster_id=disaster.id) }}"
+        style="display:grid; grid-template-columns:2fr 1fr 1fr 2fr auto; gap:.5rem; align-items:end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group" style="margin:0;"><label>Area name</label><input type="text" name="area_name" required placeholder="e.g. Thamel"></div>
+    <div class="form-group" style="margin:0;"><label>Population</label><input type="number" name="population" min="0" value="0"></div>
+    <div class="form-group" style="margin:0;"><label>Damage</label>
+      <select name="damage_level"><option value="minor">Minor</option><option value="moderate" selected>Moderate</option><option value="severe">Severe</option><option value="destroyed">Destroyed</option></select>
+    </div>
+    <div class="form-group" style="margin:0;"><label>Notes</label><input type="text" name="notes" placeholder="Optional notes"></div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Add</button>
+  </form>
+</div>
+
+<!-- ══ FEATURE 8 — RESOURCE REQUESTS ══ -->
+<div class="card">
+  <h3 class="card-title">📦 Resource requests</h3>
+  {% if disaster.resource_reqs %}
+  <table class="table" style="margin-bottom:1rem;">
+    <thead><tr><th>Resource</th><th>Qty</th><th>Priority</th><th>Status</th><th>By</th><th></th></tr></thead>
+    <tbody>
+    {% for r in disaster.resource_reqs %}
+    <tr>
+      <td><strong>{{ r.resource }}</strong>{% if r.notes %}<br><small style="color:var(--muted);">{{ r.notes }}</small>{% endif %}</td>
+      <td>{{ r.quantity }} {{ r.unit or '' }}</td>
+      <td><span class="badge badge-{{ r.priority }}">{{ r.priority }}</span></td>
+      <td>
+        {% if current_user.role in ['admin','responder'] %}
+        <form method="POST" action="{{ url_for('crisis.update_resource', req_id=r.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="status" onchange="this.form.submit()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.2rem;font-size:.8rem;">
+            {% for s in ['pending','approved','fulfilled','cancelled'] %}<option value="{{ s }}" {% if r.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </form>
+        {% else %}<span class="badge">{{ r.status }}</span>{% endif %}
+      </td>
+      <td style="font-size:.8rem;color:var(--muted);">{{ r.requester.username }}</td>
+      <td>
+        <form method="POST" action="{{ url_for('crisis.delete_resource', req_id=r.id) }}"
+              onsubmit="return confirm('Remove?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn-sm" style="color:#ef4444;">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <form method="POST" action="{{ url_for('crisis.add_resource', disaster_id=disaster.id) }}"
+        style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr auto; gap:.5rem; align-items:end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group" style="margin:0;"><label>Resource *</label><input type="text" name="resource" required placeholder="e.g. Water bottles"></div>
+    <div class="form-group" style="margin:0;"><label>Qty</label><input type="number" name="quantity" min="1" value="1"></div>
+    <div class="form-group" style="margin:0;"><label>Unit</label><input type="text" name="unit" placeholder="boxes"></div>
+    <div class="form-group" style="margin:0;"><label>Priority</label>
+      <select name="priority"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="critical">Critical</option></select>
+    </div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Add</button>
+  </form>
+</div>
+
+<!-- ══ FEATURE 13 — RELIEF SUPPLIES ══ -->
+<div class="card">
+  <h3 class="card-title">🎁 Relief supplies</h3>
+  {% if disaster.supplies %}
+  <table class="table" style="margin-bottom:1rem;">
+    <thead><tr><th>Item</th><th>Quantity</th><th>Donated by</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for s in disaster.supplies %}
+    <tr>
+      <td><strong>{{ s.item_name }}</strong></td>
+      <td>{{ s.quantity }} {{ s.unit or '' }}</td>
+      <td style="color:var(--muted);font-size:.85rem;">{{ s.donated_by or '—' }}</td>
+      <td>
+        {% if current_user.role in ['admin','responder'] %}
+        <form method="POST" action="{{ url_for('crisis.update_supply', supply_id=s.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="status" onchange="this.form.submit()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.2rem;font-size:.8rem;">
+            {% for st in ['available','distributed','depleted'] %}<option value="{{ st }}" {% if s.status==st %}selected{% endif %}>{{ st }}</option>{% endfor %}
+          </select>
+        </form>
+        {% else %}<span class="badge">{{ s.status }}</span>{% endif %}
+      </td>
+      <td>
+        <form method="POST" action="{{ url_for('crisis.delete_supply', supply_id=s.id) }}"
+              onsubmit="return confirm('Remove?')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn-sm" style="color:#ef4444;">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <form method="POST" action="{{ url_for('crisis.add_supply', disaster_id=disaster.id) }}"
+        style="display:grid; grid-template-columns:2fr 1fr 1fr 2fr auto; gap:.5rem; align-items:end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group" style="margin:0;"><label>Item *</label><input type="text" name="item_name" required placeholder="e.g. Rice bags"></div>
+    <div class="form-group" style="margin:0;"><label>Qty</label><input type="number" name="quantity" min="0" value="0"></div>
+    <div class="form-group" style="margin:0;"><label>Unit</label><input type="text" name="unit" placeholder="kg"></div>
+    <div class="form-group" style="margin:0;"><label>Donated by</label><input type="text" name="donated_by" placeholder="Organisation"></div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Add</button>
+  </form>
+</div>
+
+<!-- ══ FEATURE 14 — EVACUATION ROUTES ══ -->
+<div class="card">
+  <h3 class="card-title">🚗 Evacuation routes</h3>
+  {% for r in disaster.routes %}
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:.75rem 0; border-bottom:1px solid var(--border);">
+    <div>
+      <strong>{{ r.route_name }}</strong>
+      <span class="badge badge-{{ 'resolved' if r.status=='open' else 'critical' if r.status=='closed' else 'medium' }}" style="margin-left:.5rem;">{{ r.status }}</span>
+      <div style="color:var(--muted);font-size:.85rem;">{{ r.origin }} → {{ r.destination }}{% if r.distance_km %} · {{ r.distance_km }}km{% endif %}{% if r.estimated_time %} · {{ r.estimated_time }}{% endif %}</div>
+    </div>
+    <div style="display:flex; gap:.4rem;">
+      {% if current_user.role in ['admin','responder'] %}
+      <form method="POST" action="{{ url_for('crisis.update_route', route_id=r.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <select name="status" onchange="this.form.submit()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.2rem;font-size:.8rem;">
+          {% for s in ['open','congested','closed'] %}<option value="{{ s }}" {% if r.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+        </select>
+      </form>
+      {% endif %}
+      <form method="POST" action="{{ url_for('crisis.delete_route', route_id=r.id) }}"
+            onsubmit="return confirm('Remove route?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn-sm" style="color:#ef4444;">✕</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+  <form method="POST" action="{{ url_for('crisis.add_route', disaster_id=disaster.id) }}"
+        style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr 1fr auto; gap:.5rem; align-items:end; margin-top:1rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group" style="margin:0;"><label>Route name *</label><input type="text" name="route_name" required placeholder="North corridor"></div>
+    <div class="form-group" style="margin:0;"><label>From *</label><input type="text" name="origin" required placeholder="Origin"></div>
+    <div class="form-group" style="margin:0;"><label>To *</label><input type="text" name="destination" required placeholder="Destination"></div>
+    <div class="form-group" style="margin:0;"><label>Dist (km)</label><input type="number" name="distance_km" step="0.1" min="0" value="0"></div>
+    <div class="form-group" style="margin:0;"><label>Est. time</label><input type="text" name="estimated_time" placeholder="45 min"></div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Add</button>
+  </form>
+</div>
+
+<!-- ══ FEATURE 9 — VOLUNTEERS ══ -->
+<div class="card">
+  <h3 class="card-title">🙋 Volunteers ({{ disaster.volunteers|length }})</h3>
+  {% if disaster.volunteers %}
+  <table class="table" style="margin-bottom:1rem;">
+    <thead><tr><th>Volunteer</th><th>Skills</th><th>Availability</th><th>Status</th>{% if current_user.role in ['admin','responder'] %}<th>Update</th>{% endif %}</tr></thead>
+    <tbody>
+    {% for v in disaster.volunteers %}
+    <tr>
+      <td><strong>{{ v.user.username }}</strong></td>
+      <td style="color:var(--muted);font-size:.85rem;">{{ v.skills or '—' }}</td>
+      <td style="color:var(--muted);font-size:.85rem;">{{ v.availability or '—' }}</td>
+      <td><span class="badge badge-{{ 'resolved' if v.status=='active' else 'medium' }}">{{ v.status }}</span></td>
+      {% if current_user.role in ['admin','responder'] %}
+      <td>
+        <form method="POST" action="{{ url_for('crisis.update_volunteer', vol_id=v.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <select name="status" onchange="this.form.submit()" style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.2rem;font-size:.8rem;">
+            {% for s in ['pending','approved','active','completed'] %}<option value="{{ s }}" {% if v.status==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </form>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if my_volunteer %}
+  <div style="display:flex; align-items:center; gap:1rem; padding:.75rem; background:var(--surface); border-radius:8px;">
+    <span>You are registered as a volunteer — status: <span class="badge badge-medium">{{ my_volunteer.status }}</span></span>
+    <form method="POST" action="{{ url_for('crisis.delete_volunteer', vol_id=my_volunteer.id) }}"
+          onsubmit="return confirm('Withdraw registration?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn-sm">Withdraw</button>
+    </form>
+  </div>
+  {% else %}
+  <form method="POST" action="{{ url_for('crisis.register_volunteer', disaster_id=disaster.id) }}"
+        style="display:grid; grid-template-columns:2fr 1fr auto; gap:.5rem; align-items:end; margin-top:.5rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group" style="margin:0;"><label>Your skills</label><input type="text" name="skills" placeholder="First aid, logistics…"></div>
+    <div class="form-group" style="margin:0;"><label>Availability</label><input type="text" name="availability" placeholder="Weekends"></div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Register</button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- ══ FEATURE 12 — CRISIS MEDIA ══ -->
+<div class="card">
+  <h3 class="card-title">🖼 Media & links</h3>
+  {% for m in disaster.media %}
+  <div style="display:flex; justify-content:space-between; align-items:center; padding:.6rem 0; border-bottom:1px solid var(--border);">
+    <div>
+      <span class="badge badge-active">{{ m.media_type }}</span>
+      <a href="{{ m.url }}" target="_blank" style="margin-left:.5rem;">{{ m.caption or m.url }}</a>
+    </div>
+    <form method="POST" action="{{ url_for('crisis.delete_media', media_id=m.id) }}"
+          onsubmit="return confirm('Remove?')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn-sm" style="color:#ef4444;">✕</button>
+    </form>
+  </div>
+  {% endfor %}
+  <form method="POST" action="{{ url_for('crisis.add_media', disaster_id=disaster.id) }}"
+        style="display:grid; grid-template-columns:1fr 2fr 2fr auto; gap:.5rem; align-items:end; margin-top:1rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group" style="margin:0;"><label>Type</label>
+      <select name="media_type"><option value="link">Link</option><option value="image">Image</option><option value="video">Video</option><option value="document">Document</option></select>
+    </div>
+    <div class="form-group" style="margin:0;"><label>URL *</label><input type="url" name="url" required placeholder="https://…"></div>
+    <div class="form-group" style="margin:0;"><label>Caption</label><input type="text" name="caption" placeholder="Description"></div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Add</button>
+  </form>
+</div>
+
+<!-- ══ FEATURE 15 — INCIDENT TIMELINE ══ -->
+<div class="card">
+  <h3 class="card-title">🕐 Incident timeline</h3>
+  <div style="position:relative; padding-left:1.5rem; border-left:2px solid var(--border); margin-bottom:1rem;">
+    {% for event in disaster.timeline|sort(attribute='event_time', reverse=True) %}
+    <div style="position:relative; margin-bottom:1rem;">
+      <div style="position:absolute; left:-1.6rem; top:.3rem; width:12px; height:12px; border-radius:50%; background:var(--accent); border:2px solid var(--bg);"></div>
+      <div style="background:var(--surface); border-radius:8px; padding:.75rem;">
+        <div style="font-size:.8rem; color:var(--muted);">{{ event.event_time.strftime('%d %b %Y, %H:%M') }}</div>
+        <div style="font-weight:600;">{{ event.title }}</div>
+        {% if event.description %}<p style="color:var(--muted);font-size:.875rem;margin-top:.2rem;">{{ event.description }}</p>{% endif %}
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:.3rem;">
+          <small style="color:var(--muted);">by {{ event.reporter.username }}</small>
+          {% if event.created_by == current_user.id or current_user.role == 'admin' %}
+          <form method="POST" action="{{ url_for('crisis.delete_timeline', event_id=event.id) }}"
+                onsubmit="return confirm('Delete?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn-sm" style="color:#ef4444;">✕</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <p class="text-muted" style="padding:.5rem 0;">No timeline events yet.</p>
+    {% endfor %}
+  </div>
+  <form method="POST" action="{{ url_for('crisis.add_timeline', disaster_id=disaster.id) }}"
+        style="display:grid; grid-template-columns:1fr 2fr 2fr auto; gap:.5rem; align-items:end;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-group" style="margin:0;"><label>Date & time *</label><input type="datetime-local" name="event_time" required></div>
+    <div class="form-group" style="margin:0;"><label>Event title *</label><input type="text" name="title" required placeholder="e.g. Flood waters rising"></div>
+    <div class="form-group" style="margin:0;"><label>Description</label><input type="text" name="description" placeholder="Details…"></div>
+    <button type="submit" class="btn btn-primary" style="align-self:flex-end;">Add</button>
+  </form>
+</div>
+
+<!-- ══ FEATURE 6 — COMMENTS ══ -->
+<div class="card">
+  <h3 class="card-title">💬 Comments ({{ disaster.comments|length }})</h3>
+  {% for c in disaster.comments %}
+  <div style="padding:.75rem 0; border-bottom:1px solid var(--border);">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+      <div>
+        <strong style="font-size:.875rem;">{{ c.author.username }}</strong>
+        <span style="color:var(--muted); font-size:.8rem; margin-left:.5rem;">{{ c.created_at.strftime('%d %b %Y, %H:%M') }}</span>
+        <p style="margin-top:.3rem; color:var(--muted);">{{ c.comment }}</p>
+      </div>
+      {% if c.user_id == current_user.id or current_user.role == 'admin' %}
+      <form method="POST" action="{{ url_for('crisis.delete_comment', comment_id=c.id) }}"
+            onsubmit="return confirm('Delete comment?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn-sm" style="color:#ef4444;">✕</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <p class="text-muted" style="margin-bottom:1rem;">No comments yet. Be the first.</p>
+  {% endfor %}
+  <form method="POST" action="{{ url_for('crisis.add_comment', disaster_id=disaster.id) }}"
+        style="display:flex; gap:.5rem; margin-top:1rem;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="text" name="comment" required placeholder="Write a comment…"
+           style="flex:1; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:.55rem .9rem; font-size:.9rem;">
+    <button type="submit" class="btn btn-primary">Post</button>
+  </form>
 </div>
 
 <!-- Alert history -->
 {% if disaster.alerts %}
 <div class="card">
-  <h3 class="card-title">Alert history</h3>
+  <h3 class="card-title">🔔 Alert history</h3>
   <table class="table">
     <thead><tr><th>Sent to</th><th>Method</th><th>Status</th><th>Time</th></tr></thead>
     <tbody>
@@ -102,7 +416,7 @@
     <tr>
       <td>{{ a.sent_to }}</td>
       <td>{{ a.method }}</td>
-      <td><span class="badge badge-{{ 'success' if a.status == 'sent' else 'danger' }}">{{ a.status }}</span></td>
+      <td><span class="badge badge-{{ 'resolved' if a.status == 'sent' else 'critical' }}">{{ a.status }}</span></td>
       <td>{{ a.sent_at.strftime('%d %b %Y, %H:%M') }}</td>
     </tr>
     {% endfor %}
