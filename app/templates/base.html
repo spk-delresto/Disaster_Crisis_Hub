@@ -6,22 +6,93 @@
   <title>{% block title %}Disaster Crisis Hub{% endblock %}</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    /* ── Tab-style navbar for inner pages ── */
+    .navbar {
+      display: flex; align-items: stretch;
+      background: #080d1a;
+      border-bottom: 2px solid #0f1929;
+      position: sticky; top: 0; z-index: 100;
+      min-height: 58px;
+    }
+    .brand {
+      display: flex; align-items: center; gap: .5rem;
+      padding: 0 1.75rem; font-size: 1rem; font-weight: 800;
+      color: #fff; text-decoration: none; letter-spacing: .02em;
+      border-right: 1px solid #0f1929; white-space: nowrap;
+    }
+    .brand-icon { font-size: 1.4rem; }
+    .nav-links {
+      display: flex; align-items: stretch; list-style: none;
+      flex: 1; margin: 0; padding: 0;
+    }
+    .nav-links li { display: flex; }
+    .nav-links a {
+      display: flex; align-items: center;
+      padding: 0 1.4rem;
+      color: #94a3b8;
+      font-size: .78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em;
+      text-decoration: none;
+      border-right: 1px solid #0f1929;
+      transition: background .2s, color .2s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover {
+      background: #1e3a6e;
+      color: #fff;
+      text-decoration: none;
+    }
+    .nav-links a.active {
+      background: #1e3a6e;
+      color: #fff;
+      border-bottom: 2px solid #3b82f6;
+    }
+    .nav-user {
+      display: flex; align-items: center; gap: .75rem;
+      padding: 0 1.25rem; margin-left: auto;
+      border-left: 1px solid #0f1929;
+    }
+    .nav-user span { font-size: .85rem; color: #94a3b8; }
+    .btn-sm {
+      padding: .35rem .9rem; font-size: .78rem; font-weight: 700;
+      background: #1e293b; color: #e2e8f0;
+      border: 1px solid #334155; border-radius: 6px;
+      cursor: pointer; text-decoration: none;
+      transition: background .2s;
+    }
+    .btn-sm:hover { background: #334155; }
+    .badge {
+      display: inline-block; padding: .18rem .55rem;
+      border-radius: 999px; font-size: .7rem; font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-admin    { background: rgba(239,68,68,.15);  color: #f87171; }
+    .badge-responder { background: rgba(245,158,11,.15); color: #fbbf24; }
+    .badge-viewer   { background: rgba(100,116,139,.15); color: #94a3b8; }
+  </style>
 </head>
 <body>
 
 {% if current_user.is_authenticated %}
 <nav class="navbar">
-  <a class="brand" href="{{ url_for('dashboard.index') }}">
-    <span class="brand-icon">🌐</span> Crisis Hub
+  <a class="brand" href="{{ url_for('home.index') }}">
+    <span class="brand-icon">🌐</span> CRISIS HUB
   </a>
   <ul class="nav-links">
-    <li><a href="{{ url_for('dashboard.index') }}" {% if request.endpoint == 'dashboard.index' %}class="active"{% endif %}>Dashboard</a></li>
-    <li><a href="{{ url_for('crisis.list_crises') }}" {% if request.endpoint and 'crisis' in request.endpoint %}class="active"{% endif %}>Crises</a></li>
-    <li><a href="{{ url_for('alerts.contacts') }}" {% if request.endpoint and 'alerts' in request.endpoint %}class="active"{% endif %}>Contacts</a></li>
-    <li><a href="{{ url_for('extra.announcements') }}" {% if request.endpoint and 'announcements' in request.endpoint %}class="active"{% endif %}>Announcements</a></li>
-    <li><a href="{{ url_for('extra.feedback_list') }}" {% if request.endpoint and 'feedback' in request.endpoint %}class="active"{% endif %}>Feedback</a></li>
+    <li><a href="{{ url_for('dashboard.index') }}"
+       {% if request.endpoint == 'dashboard.index' %}class="active"{% endif %}>Dashboard</a></li>
+    <li><a href="{{ url_for('crisis.list_crises') }}"
+       {% if request.endpoint and 'crisis' in request.endpoint %}class="active"{% endif %}>Crises</a></li>
+    <li><a href="{{ url_for('alerts.contacts') }}"
+       {% if request.endpoint and 'alerts' in request.endpoint %}class="active"{% endif %}>Contacts</a></li>
+    <li><a href="{{ url_for('extra.announcements') }}"
+       {% if request.endpoint and 'announcement' in (request.endpoint or '') %}class="active"{% endif %}>Announcements</a></li>
+    <li><a href="{{ url_for('extra.feedback_list') }}"
+       {% if request.endpoint and 'feedback' in (request.endpoint or '') %}class="active"{% endif %}>Feedback</a></li>
     {% if current_user.role == 'admin' %}
-    <li><a href="{{ url_for('admin.index') }}" {% if request.endpoint and 'admin' in request.endpoint %}class="active"{% endif %}>⚙️ Admin</a></li>
+    <li><a href="{{ url_for('admin.index') }}"
+       {% if request.endpoint and 'admin' in (request.endpoint or '') %}class="active"{% endif %}>⚙️ Admin</a></li>
     {% endif %}
   </ul>
   <div class="nav-user">
@@ -42,7 +113,6 @@
       </div>
     {% endif %}
   {% endwith %}
-
   {% block content %}{% endblock %}
 </main>
 
@@ -50,10 +120,8 @@
   <small>Disaster Crisis Hub &mdash; © 2025</small>
 </footer>
 
-<!-- Load libraries before page scripts -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
 {% block scripts %}{% endblock %}
 </body>
 </html>
